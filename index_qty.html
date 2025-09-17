@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tính phí gói tạp chí — có số lượng</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;margin:0;padding:24px;line-height:1.5}
+    .wrap{max-width:720px;margin:0 auto}
+    h1{font-size:22px;margin:0 0 12px}
+    .list{display:grid;gap:10px;margin:10px 0 16px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #ddd;border-radius:10px;padding:10px 12px}
+    .name{font-weight:600}
+    .qty{display:flex;align-items:center;gap:8px}
+    .btn{width:32px;height:32px;border-radius:8px;border:1px solid #111;background:#111;color:#fff;cursor:pointer}
+    .btn[disabled]{opacity:.4;cursor:not-allowed}
+    .num{min-width:28px;text-align:center;font-weight:700}
+    .calc{padding:10px 16px;border-radius:10px;border:1px solid #111;background:#111;color:#fff;cursor:pointer}
+    .result{margin-top:16px;font-weight:700}
+    .note{margin-top:6px;color:#555;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Tính phí gói tạp chí</h1>
+
+    <div class="list">
+      <div class="row">
+        <div class="name">Bìa</div>
+        <div class="qty">
+          <button class="btn" id="biaDec">-</button>
+          <span class="num" id="biaNum">0</span>
+          <button class="btn" id="biaInc">+</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="name">Card</div>
+        <div class="qty">
+          <button class="btn" id="cardDec">-</button>
+          <span class="num" id="cardNum">0</span>
+          <button class="btn" id="cardInc">+</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="name">Pola</div>
+        <div class="qty">
+          <button class="btn" id="polaDec">-</button>
+          <span class="num" id="polaNum">0</span>
+          <button class="btn" id="polaInc">+</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="name">POS</div>
+        <div class="qty">
+          <button class="btn" id="posDec">-</button>
+          <span class="num" id="posNum">0</span>
+          <button class="btn" id="posInc">+</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="calc" id="calcBtn">Kết quả</button>
+    <div class="result" id="result">—</div>
+    <div class="note">TH1 (có bìa): 3k + 1k/món thêm · TH2 (không bìa): 3k món đầu + 0.5k/món tiếp theo</div>
+  </div>
+
+  <script>
+    const s = { bia:0, card:0, pola:0, pos:0 };
+
+    function formatK(n){ return Number.isInteger(n) ? n + "k" : n.toFixed(1).replace(/\.0$/,'') + "k"; }
+
+    function updateUI(){
+      document.getElementById('biaNum').textContent = s.bia;
+      document.getElementById('cardNum').textContent = s.card;
+      document.getElementById('polaNum').textContent = s.pola;
+      document.getElementById('posNum').textContent = s.pos;
+
+      // Bìa tối đa 1
+      document.getElementById('biaInc').disabled = s.bia >= 1;
+      document.getElementById('biaDec').disabled = s.bia <= 0;
+
+      // Các mục khác min 0
+      document.getElementById('cardDec').disabled = s.card <= 0;
+      document.getElementById('polaDec').disabled = s.pola <= 0;
+      document.getElementById('posDec').disabled = s.pos <= 0;
+    }
+
+    function calc(){
+      let rule = "Chưa chọn", total = 0;
+      const extrasCount = s.card + s.pola + s.pos;
+      const totalNonBia = extrasCount;
+      const anyNonBia = totalNonBia > 0;
+
+      if (s.bia >= 1){ // TH1
+        total = 3 + extrasCount * 1;
+        rule = "TH1 (có bìa)";
+      } else if (!s.bia && anyNonBia){ // TH2
+        const units = totalNonBia;
+        total = 3 + Math.max(0, units - 1) * 0.5;
+        rule = "TH2 (không bìa)";
+      } else {
+        total = 0;
+      }
+      document.getElementById('result').textContent = rule + " ⇒ " + formatK(total);
+    }
+
+    // Wire buttons
+    function inc(k, max=Infinity){ s[k] = Math.min(max, s[k]+1); updateUI(); }
+    function dec(k, min=0){ s[k] = Math.max(min, s[k]-1); updateUI(); }
+
+    document.getElementById('biaInc').addEventListener('click', ()=>inc('bia', 1));
+    document.getElementById('biaDec').addEventListener('click', ()=>dec('bia', 0));
+
+    document.getElementById('cardInc').addEventListener('click', ()=>inc('card'));
+    document.getElementById('cardDec').addEventListener('click', ()=>dec('card'));
+
+    document.getElementById('polaInc').addEventListener('click', ()=>inc('pola'));
+    document.getElementById('polaDec').addEventListener('click', ()=>dec('pola'));
+
+    document.getElementById('posInc').addEventListener('click', ()=>inc('pos'));
+    document.getElementById('posDec').addEventListener('click', ()=>dec('pos'));
+
+    document.getElementById('calcBtn').addEventListener('click', calc);
+
+    updateUI();
+  </script>
+</body>
+</html>
