@@ -1,0 +1,58 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tính phí gói tạp chí — đơn giản</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;margin:0;padding:24px;line-height:1.5}
+    .wrap{max-width:720px;margin:0 auto}
+    h1{font-size:22px;margin:0 0 12px}
+    .row{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0 16px}
+    label{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #ddd;border-radius:10px;cursor:pointer}
+    input[type=checkbox]{width:16px;height:16px}
+    button{padding:10px 16px;border-radius:10px;border:1px solid #111;background:#111;color:#fff;cursor:pointer}
+    .result{margin-top:16px;font-weight:700}
+    .note{margin-top:6px;color:#555;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Tính phí gói tạp chí</h1>
+    <div class="row">
+      <label><input type="checkbox" id="bia"> Bìa</label>
+      <label><input type="checkbox" id="card"> Card</label>
+      <label><input type="checkbox" id="pola"> Pola</label>
+      <label><input type="checkbox" id="pos"> POS</label>
+    </div>
+    <button id="calcBtn">Kết quả</button>
+    <div class="result" id="result">—</div>
+    <div class="note">TH1 (có bìa): 3k + 1k/món thêm · TH2 (không bìa): 3k món đầu + 0.5k/món tiếp theo</div>
+  </div>
+  <script>
+    function formatK(n){ return Number.isInteger(n) ? n + "k" : n.toFixed(1).replace(/\.0$/,'') + "k"; }
+    function calc(){
+      const sel = {
+        bia: document.getElementById('bia').checked,
+        card: document.getElementById('card').checked,
+        pola: document.getElementById('pola').checked,
+        pos: document.getElementById('pos').checked,
+      };
+      const picked = Object.entries(sel).filter(([,v])=>v).map(([k])=>k);
+      const count = picked.length;
+      let rule = "Chưa chọn", total = 0;
+      if (sel.bia){
+        const extras = picked.filter(id=>id!=="bia").length;
+        total = 3 + extras * 1;
+        rule = "TH1 (có bìa)";
+      } else if (count>0){
+        total = 3 + (count - 1) * 0.5;
+        rule = "TH2 (không bìa)";
+      }
+      document.getElementById('result').textContent = rule + " ⇒ " + formatK(total);
+    }
+    document.getElementById('calcBtn').addEventListener('click', calc);
+  </script>
+</body>
+</html>
