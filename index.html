@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tính phí gói tạp chí</title>
+  <style>
+    :root{--bg:#ffffff;--text:#111827;--muted:#6b7280;--border:#e5e7eb}
+    *{box-sizing:border-box}html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,Inter,sans-serif;color:var(--text);background:var(--bg)}
+    .wrap{max-width:640px;margin:0 auto;padding:16px 16px 40px}
+    h1{font-size:20px;margin:0 0 12px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    @media (max-width:560px){.grid{grid-template-columns:1fr}}
+    .card{border:1px solid var(--border);border-radius:8px;padding:12px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .label{font-weight:600}
+    .qty{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    .btn{appearance:none;background:#fff;border:none;border-right:1px solid var(--border);padding:8px 12px;cursor:pointer}
+    .btn:last-child{border-right:none;border-left:1px solid var(--border)}
+    .val{min-width:48px;text-align:center;padding:6px 8px}
+    .action{margin-top:20px;text-align:center}
+    .action button{padding:10px 16px;font-size:16px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:#f9fafb}
+    .result{margin-top:16px;text-align:center;font-size:18px;font-weight:600}
+    noscript{display:block;margin-top:12px;color:#b91c1c}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Tính phí gói tạp chí</h1>
+
+    <!-- 4 mục tĩnh để không bao giờ mất -->
+    <div class="grid" id="items">
+      <div class="card">
+        <div class="row">
+          <div class="label">Bìa</div>
+          <div class="qty" role="group" aria-label="Số lượng Bìa">
+            <button type="button" class="btn" data-act="dec" data-key="bia">−</button>
+            <div class="val" id="val-bia">0</div>
+            <button type="button" class="btn" data-act="inc" data-key="bia">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <div class="label">Card</div>
+          <div class="qty" role="group" aria-label="Số lượng Card">
+            <button type="button" class="btn" data-act="dec" data-key="card">−</button>
+            <div class="val" id="val-card">0</div>
+            <button type="button" class="btn" data-act="inc" data-key="card">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <div class="label">Pola</div>
+          <div class="qty" role="group" aria-label="Số lượng Pola">
+            <button type="button" class="btn" data-act="dec" data-key="pola">−</button>
+            <div class="val" id="val-pola">0</div>
+            <button type="button" class="btn" data-act="inc" data-key="pola">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <div class="label">POS</div>
+          <div class="qty" role="group" aria-label="Số lượng POS">
+            <button type="button" class="btn" data-act="dec" data-key="pos">−</button>
+            <div class="val" id="val-pos">0</div>
+            <button type="button" class="btn" data-act="inc" data-key="pos">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="action">
+      <button id="calcBtn" type="button">Kết quả</button>
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <noscript>Trình duyệt đang tắt JavaScript nên không hiển thị được tương tác.</noscript>
+  </div>
+
+  <script>
+    (function(){
+      // ========= State =========
+      const keys = ['bia','card','pola','pos'];
+      const state = { qty: { bia:0, card:0, pola:0, pos:0 } };
+
+      // Restore from localStorage
+      try {
+        const saved = JSON.parse(localStorage.getItem('mp_qty')||'{}');
+        for (const k of keys){ if (Number.isFinite(+saved[k])) state.qty[k] = Math.max(0, Math.floor(+saved[k])); }
+      } catch(_) {}
+
+      // Hydrate UI
+      for (const k of keys){
+        const el = document.getElementById('val-'+k);
+        if (el) el.textContent = String(state.qty[k]||0);
+      }
+
+      function save(){
+        try { localStorage.setItem('mp_qty', JSON.stringify(state.qty)); } catch(_){/* ignore */}
+      }
+
+      // ========= Price Rules =========
+      // Pure function for testability
+      function priceFor(bia, card, pola, pos){
+        const total = bia + card + pola + pos;
+        if (total <= 0) return 0;
+        // Có bìa hoặc có POS: base 4k, mỗi đơn vị thêm +1k (base chỉ tính 1 lần dù có cả hai)
+        if (bia > 0 || pos > 0){
+          return 4000 + (total - 1) * 1000;
+        }
+        // Không bìa & không POS: base 3.5k, mỗi đơn vị card/pola thêm +1k
+        const cp = card + pola;
+        if (cp > 0) return 3500 + (cp - 1) * 1000;
+        return 0;
+      }
+
+      function calcFee(){
+        const q = state.qty;
+        return priceFor(q.bia||0, q.card||0, q.pola||0, q.pos||0);
+      }
+
+      // ========= Events =========
+      // Attach listeners directly to buttons
+      document.querySelectorAll('#items button.btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-key');
+          const act = btn.getAttribute('data-act');
+          if(!key || !act) return;
+          const cur = Number(state.qty[key]||0);
+          const val = act === 'inc' ? cur + 1 : Math.max(0, cur - 1);
+          state.qty[key] = val;
+          const valEl = document.getElementById('val-'+key);
+          if (valEl) valEl.textContent = String(val);
+          save();
+        });
+      });
+
+      document.getElementById('calcBtn').addEventListener('click', () => {
+        const fee = calcFee();
+        const txt = fee > 0 ? (fee/1000).toLocaleString('vi-VN') + 'k' : '0k';
+        document.getElementById('result').textContent = 'Phí gói: ' + txt;
+      });
+
+      // ========= Tests =========
+      (function runTests(){
+        const t = (bia,card,pola,pos,expect) => {
+          const got = priceFor(bia,card,pola,pos);
+          console.assert(got === expect, `Test fail (${bia},${card},${pola},${pos}) → got ${got}, expect ${expect}`);
+        };
+        // Có bìa (base 4k, +1k/đơn vị thêm)
+        t(1,0,0,0,4000);         // chỉ bìa
+        t(1,1,0,0,5000);         // bìa + 1 card
+        t(2,0,0,0,5000);         // 2 bìa → 4k + 1×1k
+        t(1,1,1,0,6000);         // bìa + card + pola
+        t(1,0,0,1,5000);         // bìa + pos → base 4k chỉ 1 lần
+        // Có POS, không bìa (base 4k, +1k/đơn vị thêm)
+        t(0,0,0,1,4000);         // chỉ POS
+        t(0,1,0,1,5000);         // POS + 1 card
+        t(0,0,2,1,6000);         // POS + 2 pola → 4k + 2×1k
+        // Không bìa & không POS (base 3.5k, +1k/đơn vị card/pola thêm)
+        t(0,1,0,0,3500);         // 1 card
+        t(0,2,0,0,4500);         // 2 card → 3.5k + 1×1k
+        t(0,1,2,0,5500);         // card + 2 pola → 3.5k + 2×1k = 5.5k
+        t(0,0,0,0,0);            // không chọn gì
+        console.log('Tests completed. If no assertion failed, pricing logic is OK ✅');
+      })();
+    })();
+  </script>
+</body>
+</html>
